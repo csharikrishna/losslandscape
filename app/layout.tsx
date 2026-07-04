@@ -60,6 +60,8 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+import ClientLayout from "./ClientLayout";
+
 export default function RootLayout({
   children,
 }: {
@@ -67,7 +69,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
-      <body>{children}</body>
+      <body>
+        <ClientLayout>{children}</ClientLayout>
+      </body>
     </html>
   );
 }

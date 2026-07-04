@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, useTransform, useMotionValueEvent } from "framer-motion";
+import Link from "next/link";
 import { useJourneyScroll } from "@/lib/scroll-context";
 import { JOURNEY, heightAt } from "@/lib/terrain-data";
 import { stopProgress } from "@/lib/trajectory";
@@ -62,10 +63,10 @@ function CountdownRing({ seconds }: { seconds: number }) {
 }
 
 export default function Nav() {
-  const { smoothProgress, isExploreMode, setIsExploreMode } = useJourneyScroll();
+  const { smoothProgress, isExploreMode, isNNMode } = useJourneyScroll();
   const fillWidth = useTransform(smoothProgress, (p) => `${Math.max(0, Math.min(100, p * 100))}%`);
   const [activeIndex, setActiveIndex] = useState(0);
-  const { isPlaying, setIsPlaying, toggle, pauseRemaining } = useMovieMode();
+  const { isPlaying, setIsPlaying, pauseRemaining } = useMovieMode();
   const { isAudioOn, setIsAudioOn } = useAudioDrone();
 
   // Nav backdrop opacity — transparent at top, dark after hero
@@ -222,16 +223,7 @@ export default function Nav() {
               )}
             </button>
             
-            <button
-              onClick={() => setIsExploreMode(true)}
-              className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 font-mono text-xs text-ink-dim transition-colors hover:border-signal/50 hover:text-signal"
-              title="Explore freely (WASD + Mouse)"
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
-              </svg>
-              Explore
-            </button>
+
             
             <button
               onClick={() => setIsPlaying(!isPlaying)}
@@ -267,53 +259,94 @@ export default function Nav() {
 
       </motion.header>
 
-      {/* Floating stop button visible ONLY during Movie or Explore Mode */}
-      {(isPlaying || isExploreMode) && (
-        <motion.button
+      {/* Floating stop button visible ONLY during Movie, Explore, or NN Mode */}
+      {(isPlaying || isExploreMode || isNNMode) && (
+        <Link
+          href="/"
           className="fixed right-6 top-6 z-[60] flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-void/60 text-ink-dim backdrop-blur-md transition-colors hover:border-signal/50 hover:text-signal"
           onClick={() => {
             setIsPlaying(false);
-            setIsExploreMode(false);
           }}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.8 }}
-          title={isPlaying ? "Stop Movie Mode (Space)" : "Exit Explore Mode"}
+          title={isPlaying ? "Stop Movie Mode (Space)" : "Exit"}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
             <rect x="6" y="4" width="4" height="16" />
             <rect x="14" y="4" width="4" height="16" />
           </svg>
-        </motion.button>
+        </Link>
       )}
 
-      {/* Explore Mode Controls Guide */}
-      {isExploreMode && (
+      {/* Explore Mode / NN Mode Controls Guide */}
+      {(isExploreMode || isNNMode) && (
         <motion.div
-          className="fixed bottom-8 left-8 z-[60] flex flex-col gap-2 rounded-xl border border-white/10 bg-void/60 p-5 text-xs font-mono text-ink-dim backdrop-blur-md shadow-2xl"
+          className="fixed bottom-8 left-8 z-[60] flex flex-col gap-4 rounded-xl border border-white/10 bg-black/50 p-6 backdrop-blur-md font-mono text-sm shadow-2xl min-w-[280px]"
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.95 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className="mb-2 flex items-center gap-2 font-sans text-[13px] font-medium text-white/90">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-signal">
-              <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
-            </svg>
-            Matrix Controls
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2 text-cyan-400 font-bold">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+              </svg>
+              <span>{isNNMode ? "Architecture Controls" : "Matrix Controls"}</span>
+            </div>
+            {isNNMode && (
+              <button 
+                onClick={() => window.dispatchEvent(new Event("reset-nn-camera"))}
+                className="px-2 py-1 bg-white/10 hover:bg-white/20 rounded text-xs text-white transition-colors"
+                title="Reset Camera View"
+              >
+                Reset View
+              </button>
+            )}
           </div>
-          <div className="flex justify-between gap-12 border-b border-white/5 pb-2">
-            <span className="text-white/80">W A S D</span>
-            <span className="text-white/40">Move</span>
-          </div>
-          <div className="flex justify-between gap-12 border-b border-white/5 py-2">
-            <span className="text-white/80">R / F</span>
-            <span className="text-white/40">Up / Down</span>
-          </div>
-          <div className="flex justify-between gap-12 pt-2">
-            <span className="text-white/80">Click + Drag</span>
-            <span className="text-white/40">Look Around</span>
-          </div>
+          
+          {isNNMode ? (
+            <div className="flex justify-between gap-12 border-b border-white/5 pb-2">
+              <span className="text-white/80">Left Click</span>
+              <span className="text-right text-white/40">Rotate</span>
+            </div>
+          ) : (
+            <div className="flex justify-between gap-12 border-b border-white/5 pb-2">
+              <span className="text-white/80">W A S D</span>
+              <span className="text-right text-white/40">Move</span>
+            </div>
+          )}
+
+          {isNNMode ? (
+            <div className="flex justify-between gap-12 border-b border-white/5 pb-2">
+              <span className="text-white/80">W A S D <span className="opacity-30">or</span> R-Click</span>
+              <span className="text-right text-white/40">Pan</span>
+            </div>
+          ) : (
+            <div className="flex justify-between gap-12 border-b border-white/5 pb-2">
+              <span className="text-white/80">R / F</span>
+              <span className="text-right text-white/40">Up / Down</span>
+            </div>
+          )}
+
+          {isNNMode ? (
+            <div className="flex justify-between gap-12 pt-1 pb-3">
+              <span className="text-white/80">Scroll</span>
+              <span className="text-right text-white/40">Zoom</span>
+            </div>
+          ) : (
+            <div className="flex justify-between gap-12 pt-1">
+              <span className="text-white/80">Click + Drag</span>
+              <span className="text-right text-white/40">Look Around</span>
+            </div>
+          )}
+
+          {isNNMode && (
+            <button 
+              onClick={() => window.dispatchEvent(new Event("start-cinematic-tour"))}
+              className="mt-1 w-full py-2 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 hover:from-cyan-500/40 hover:to-purple-500/40 rounded-lg text-xs text-white transition-all uppercase tracking-widest border border-[#00f0ff]/30 font-bold shadow-[0_0_15px_rgba(0,240,255,0.2)]"
+            >
+              Start Cinematic Tour
+            </button>
+          )}
         </motion.div>
       )}
 
