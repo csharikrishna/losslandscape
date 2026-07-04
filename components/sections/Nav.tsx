@@ -112,11 +112,11 @@ export default function Nav() {
       <motion.header
         className="fixed inset-x-0 top-0 z-50"
         animate={{
-          opacity: isPlaying || isExploreMode ? 0 : 1,
-          y: isPlaying || isExploreMode ? -20 : 0,
+          opacity: isPlaying || isExploreMode || isNNMode ? 0 : 1,
+          y: isPlaying || isExploreMode || isNNMode ? -20 : 0,
         }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        style={{ pointerEvents: isPlaying || isExploreMode ? 'none' : 'auto' }}
+        style={{ pointerEvents: isPlaying || isExploreMode || isNNMode ? 'none' : 'auto' }}
       >
         {/* Dark gradient backdrop that fades in after hero */}
         <motion.div
