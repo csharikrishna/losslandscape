@@ -286,13 +286,13 @@ export default function Nav() {
       {/* Explore Mode / NN Mode Controls Guide */}
       {(isExploreMode || isNNMode) && (
         <motion.div
-          className="fixed bottom-8 left-8 z-[60] flex flex-col gap-4 rounded-xl border border-white/10 bg-black/50 p-6 backdrop-blur-md font-mono text-sm shadow-2xl min-w-[280px]"
+          className="fixed bottom-8 left-8 z-[60] flex flex-col gap-4 rounded-xl border border-white/10 bg-black/50 p-6 backdrop-blur-md font-mono text-sm shadow-2xl w-[320px]"
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.95 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-2 w-full">
             <div className="flex items-center gap-2 text-cyan-400 font-bold">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
@@ -302,7 +302,7 @@ export default function Nav() {
             {isNNMode && (
               <button 
                 onClick={() => window.dispatchEvent(new Event("reset-nn-camera"))}
-                className="px-2 py-1 bg-white/10 hover:bg-white/20 rounded text-xs text-white transition-colors"
+                className="px-2 py-1 bg-white/10 hover:bg-white/20 rounded text-xs text-white transition-colors whitespace-nowrap flex-shrink-0"
                 title="Reset Camera View"
               >
                 Reset View
