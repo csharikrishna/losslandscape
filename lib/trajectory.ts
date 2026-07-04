@@ -135,11 +135,24 @@ export function toCameraProgress(documentProgress: number): number {
  *  WebGL context required) and reused everywhere so "scroll progress" always
  *  means the same physical point in the landscape. */
 export function buildTrajectoryCurve(): THREE.CatmullRomCurve3 {
-  const points = JOURNEY.map((stop) => {
-    const y = heightAt(stop.x, stop.z) + HOVER;
-    return new THREE.Vector3(stop.x, y, stop.z);
-  });
-  return new THREE.CatmullRomCurve3(points, false, "catmullrom", 0.35);
+  // 1. Build a 2D guide curve for just the X and Z coordinates
+  const xzPoints = JOURNEY.map((stop) => new THREE.Vector3(stop.x, 0, stop.z));
+  const xzCurve = new THREE.CatmullRomCurve3(xzPoints, false, "catmullrom", 0.35);
+
+  // 2. Sample it densely so the line can contour to every hill and valley
+  const DENSE_SAMPLES = 250;
+  const densePoints = [];
+  for (let i = 0; i <= DENSE_SAMPLES; i++) {
+    const t = i / DENSE_SAMPLES;
+    const pt = xzCurve.getPoint(t);
+    // Find true terrain height at this exact interpolated X,Z spot
+    const y = heightAt(pt.x, pt.z) + HOVER;
+    densePoints.push(new THREE.Vector3(pt.x, y, pt.z));
+  }
+
+  // 3. Build the final 3D curve from the dense, terrain-hugging points
+  // We use a lower tension (0.1) here so the dense points don't create wiggles
+  return new THREE.CatmullRomCurve3(densePoints, false, "catmullrom", 0.1);
 }
 
 /** Arc-length-parametrized point + tangent at progress t ∈ [0, 1]. Using
