@@ -11,6 +11,13 @@ const TUBULAR_SEGMENTS = 500;
 const RADIAL_SEGMENTS = 8;
 const TUBE_RADIUS = 0.11;
 
+// Marker settings
+const MARKER_RADIUS = 0.5;
+const GLOW_RADIUS = 1.1;
+const GLOW_PULSE_SPEED = 2.2;
+const GLOW_MIN_OPACITY = 0.12;
+const GLOW_MAX_OPACITY = 0.35;
+
 export default function TrajectoryPath({
   progress,
 }: {
@@ -20,6 +27,8 @@ export default function TrajectoryPath({
   const lineMeshRef = useRef<THREE.Mesh>(null);
   const markerRef = useRef<THREE.Mesh>(null);
   const markerMaterialRef = useRef<THREE.ShaderMaterial>(null);
+  const glowRef = useRef<THREE.Mesh>(null);
+  const glowMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
 
   const curve = useMemo(() => buildTrajectoryCurve(), []);
 
@@ -51,7 +60,7 @@ export default function TrajectoryPath({
     []
   );
 
-  useFrame(({ camera }) => {
+  useFrame(({ camera, clock }) => {
     const p = toCameraProgress(progress.get());
 
     // Reveal the tube progressively: only draw the index range travelled so far.
@@ -62,6 +71,19 @@ export default function TrajectoryPath({
     // "You are here" marker glides to the current point on the curve.
     const { point } = sampleTrajectory(curve, p);
     markerRef.current?.position.copy(point);
+    glowRef.current?.position.copy(point);
+
+    // Pulse the glow ring
+    if (glowMaterialRef.current) {
+      const t = clock.getElapsedTime();
+      const pulse = GLOW_MIN_OPACITY + (GLOW_MAX_OPACITY - GLOW_MIN_OPACITY) *
+        (0.5 + 0.5 * Math.sin(t * GLOW_PULSE_SPEED));
+      glowMaterialRef.current.opacity = pulse;
+
+      // Scale pulse for added effect
+      const scale = 1.0 + 0.15 * Math.sin(t * GLOW_PULSE_SPEED);
+      glowRef.current?.scale.setScalar(scale);
+    }
 
     if (lineMaterialRef.current) lineUniforms.uCameraPosition.value.copy(camera.position);
     if (markerMaterialRef.current) markerUniforms.uCameraPosition.value.copy(camera.position);
@@ -69,6 +91,7 @@ export default function TrajectoryPath({
 
   return (
     <group>
+      {/* Trajectory tube */}
       <mesh ref={lineMeshRef} geometry={geometry}>
         <shaderMaterial
           ref={lineMaterialRef}
@@ -78,13 +101,30 @@ export default function TrajectoryPath({
           transparent
         />
       </mesh>
-      <mesh ref={markerRef}>
-        <sphereGeometry args={[0.34, 20, 20]} />
+
+      {/* Glow ring — always renders on top */}
+      <mesh ref={glowRef} renderOrder={999}>
+        <sphereGeometry args={[GLOW_RADIUS, 24, 24]} />
+        <meshBasicMaterial
+          ref={glowMaterialRef}
+          color="#8FF7E0"
+          transparent
+          opacity={GLOW_MAX_OPACITY}
+          depthTest={false}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Solid core marker — always renders on top */}
+      <mesh ref={markerRef} renderOrder={1000}>
+        <sphereGeometry args={[MARKER_RADIUS, 20, 20]} />
         <shaderMaterial
           ref={markerMaterialRef}
           vertexShader={trajectoryVertexShader}
           fragmentShader={trajectoryFragmentShader}
           uniforms={markerUniforms}
+          depthTest={false}
+          depthWrite={false}
         />
       </mesh>
     </group>

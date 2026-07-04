@@ -24,8 +24,8 @@ export default function SectionShell({
 }) {
   const heightClass = {
     hero: "min-h-[100vh]",
-    tall: "min-h-[145vh]",
-    medium: "min-h-[120vh]",
+    tall: "min-h-[160vh]",
+    medium: "min-h-[135vh]",
     short: "min-h-[85vh]",
   }[height];
 

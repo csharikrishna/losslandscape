@@ -5,7 +5,11 @@ import type { ReactNode } from "react";
 import { usePrefersReducedMotion } from "@/lib/motion";
 
 const variants: Variants = {
-  hidden: { opacity: 0, y: 28 },
+  hidden: {
+    opacity: 0,
+    y: 28,
+    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+  },
   visible: {
     opacity: 1,
     y: 0,
@@ -29,9 +33,13 @@ export default function Reveal({
       className={className}
       initial={prefersReducedMotion ? "visible" : "hidden"}
       whileInView="visible"
-      viewport={{ once: true, amount: 0.3 }}
+      viewport={{ once: false, amount: 0.25 }}
       variants={variants}
       transition={{ delay }}
+      // When leaving viewport, revert to hidden so panels don't linger
+      {...(!prefersReducedMotion && {
+        exit: "hidden",
+      })}
     >
       {children}
     </motion.div>

@@ -18,8 +18,8 @@ export function ScrollProvider({ children }: { children: ReactNode }) {
   // exactly the "one continuous journey" model this page wants.
   const { scrollYProgress } = useScroll();
   const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 55,
-    damping: 20,
+    stiffness: 40,
+    damping: 25,
     mass: 0.6,
   });
 

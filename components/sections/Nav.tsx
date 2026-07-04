@@ -5,6 +5,7 @@ import { motion, useTransform, useMotionValueEvent } from "framer-motion";
 import { useJourneyScroll } from "@/lib/scroll-context";
 import { JOURNEY, heightAt } from "@/lib/terrain-data";
 import { stopProgress } from "@/lib/trajectory";
+import { useMovieMode } from "@/lib/useMovieMode";
 
 const stopHeights = JOURNEY.map(stop => heightAt(stop.x, stop.z));
 const minH = Math.min(...stopHeights);
@@ -28,6 +29,7 @@ export default function Nav() {
   const { smoothProgress } = useJourneyScroll();
   const fillWidth = useTransform(smoothProgress, (p) => `${Math.max(0, Math.min(100, p * 100))}%`);
   const [activeIndex, setActiveIndex] = useState(0);
+  const { isPlaying, setIsPlaying } = useMovieMode();
 
   useMotionValueEvent(smoothProgress, "change", (latest) => {
     let closestIdx = 0;
@@ -123,20 +125,37 @@ export default function Nav() {
           })}
         </div>
 
-        <a
-          href="#read-pdf"
-          className="rounded-full border border-white/15 bg-white/5 px-4 py-1.5 font-mono text-xs text-ink-dim transition-colors hover:border-signal/50 hover:text-signal"
-        >
-          Read the PDF
-        </a>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsPlaying(!isPlaying)}
+            className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 font-mono text-xs text-ink-dim transition-colors hover:border-signal/50 hover:text-signal"
+          >
+            {isPlaying ? (
+              <>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="4" width="4" height="16" />
+                  <rect x="14" y="4" width="4" height="16" />
+                </svg>
+                Stop
+              </>
+            ) : (
+              <>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                Movie
+              </>
+            )}
+          </button>
+          <a
+            href="#read-pdf"
+            className="hidden rounded-full border border-white/15 bg-white/5 px-4 py-1.5 font-mono text-xs text-ink-dim transition-colors hover:border-signal/50 hover:text-signal sm:inline-block"
+          >
+            PDF
+          </a>
+        </div>
       </div>
 
-      <div className="h-[2px] w-full bg-white/5">
-        <motion.div
-          className="h-full origin-left bg-gradient-to-r from-elevation-low via-elevation-mid to-elevation-high"
-          style={{ scaleX: smoothProgress }}
-        />
-      </div>
     </header>
   );
 }
