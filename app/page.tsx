@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { ScrollProvider } from "@/lib/scroll-context";
+import { ScrollProvider, useJourneyScroll } from "@/lib/scroll-context";
 import Nav from "@/components/sections/Nav";
 import Hero from "@/components/sections/Hero";
 import Basics from "@/components/sections/Basics";
@@ -28,6 +28,46 @@ const CanvasStage = dynamic(() => import("@/components/canvas/CanvasStage"), {
   ssr: false,
 });
 
+function MainContent() {
+  const { isExploreMode } = useJourneyScroll();
+  
+  // Disable body scroll when exploring
+  if (typeof document !== "undefined") {
+    if (isExploreMode) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+  }
+
+  return (
+    <main 
+      className="relative transition-opacity duration-500"
+      style={{ 
+        opacity: isExploreMode ? 0 : 1,
+        pointerEvents: isExploreMode ? 'none' : 'auto'
+      }}
+    >
+      <Hero />
+      <Basics />
+      <SharpMinimum />
+      <SaddlePoint />
+      <Plateau />
+      <Cliff />
+      <Ridge />
+      <RavineContours />
+      <Curvature />
+      <FlatMinimum />
+      <GlobalMinimum />
+      <Sgd />
+      <Overlook />
+      <DeepConcepts />
+      <KeyTakeaways />
+      <PDFSection />
+    </main>
+  );
+}
+
 export default function Home() {
   return (
     <ScrollProvider>
@@ -38,26 +78,7 @@ export default function Home() {
       </CanvasErrorBoundary>
 
       <Nav />
-
-      <main className="relative">
-        <Hero />
-        <Basics />
-        <SharpMinimum />
-        <SaddlePoint />
-        <Plateau />
-        <Cliff />
-        <Ridge />
-        <RavineContours />
-        <Curvature />
-        <FlatMinimum />
-        <GlobalMinimum />
-        <Sgd />
-        <Overlook />
-        <DeepConcepts />
-        <KeyTakeaways />
-        <PDFSection />
-      </main>
-
+      <MainContent />
       <Footer />
     </ScrollProvider>
   );

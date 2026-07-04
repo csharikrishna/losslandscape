@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import { Stars } from "@react-three/drei";
+import { Stars, FlyControls } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import type { MotionValue } from "framer-motion";
 import Terrain from "./Terrain";
@@ -11,9 +11,11 @@ import CameraRig from "./CameraRig";
 export default function Scene({
   progress,
   motionScale,
+  isExploreMode,
 }: {
   progress: MotionValue<number>;
   motionScale: number;
+  isExploreMode: boolean;
 }) {
   return (
     <>
@@ -29,7 +31,11 @@ export default function Scene({
         <TrajectoryPath progress={progress} />
       </Suspense>
 
-      <CameraRig progress={progress} motionScale={motionScale} />
+      <CameraRig progress={progress} motionScale={motionScale} isExploreMode={isExploreMode} />
+
+      {isExploreMode && (
+        <FlyControls movementSpeed={15} rollSpeed={0.5} dragToLook={true} />
+      )}
 
       <EffectComposer multisampling={0}>
         <Bloom

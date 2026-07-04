@@ -12,7 +12,7 @@ import Scene from "./Scene";
  * series of separate embedded 3D widgets.
  */
 export default function CanvasStage() {
-  const { smoothProgress } = useJourneyScroll();
+  const { smoothProgress, isExploreMode } = useJourneyScroll();
   const reducedMotion = usePrefersReducedMotion();
 
   return (
@@ -23,7 +23,7 @@ export default function CanvasStage() {
         camera={{ fov: 50, near: 0.1, far: 400, position: [0, 30, -38] }}
         performance={{ min: 0.5 }}
       >
-        <Scene progress={smoothProgress} motionScale={reducedMotion ? 0 : 1} />
+        <Scene progress={smoothProgress} motionScale={reducedMotion ? 0 : 1} isExploreMode={isExploreMode} />
       </Canvas>
     </div>
   );

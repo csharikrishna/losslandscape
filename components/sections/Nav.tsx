@@ -62,7 +62,7 @@ function CountdownRing({ seconds }: { seconds: number }) {
 }
 
 export default function Nav() {
-  const { smoothProgress } = useJourneyScroll();
+  const { smoothProgress, isExploreMode, setIsExploreMode } = useJourneyScroll();
   const fillWidth = useTransform(smoothProgress, (p) => `${Math.max(0, Math.min(100, p * 100))}%`);
   const [activeIndex, setActiveIndex] = useState(0);
   const { isPlaying, setIsPlaying, toggle, pauseRemaining } = useMovieMode();
@@ -111,11 +111,11 @@ export default function Nav() {
       <motion.header
         className="fixed inset-x-0 top-0 z-50"
         animate={{
-          opacity: isPlaying ? 0 : 1,
-          y: isPlaying ? -20 : 0,
+          opacity: isPlaying || isExploreMode ? 0 : 1,
+          y: isPlaying || isExploreMode ? -20 : 0,
         }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        style={{ pointerEvents: isPlaying ? 'none' : 'auto' }}
+        style={{ pointerEvents: isPlaying || isExploreMode ? 'none' : 'auto' }}
       >
         {/* Dark gradient backdrop that fades in after hero */}
         <motion.div
@@ -223,6 +223,17 @@ export default function Nav() {
             </button>
             
             <button
+              onClick={() => setIsExploreMode(true)}
+              className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 font-mono text-xs text-ink-dim transition-colors hover:border-signal/50 hover:text-signal"
+              title="Explore freely (WASD + Mouse)"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+              </svg>
+              Explore
+            </button>
+            
+            <button
               onClick={() => setIsPlaying(!isPlaying)}
               className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 font-mono text-xs text-ink-dim transition-colors hover:border-signal/50 hover:text-signal"
               title="Toggle Movie Mode (Space)"
@@ -256,15 +267,18 @@ export default function Nav() {
 
       </motion.header>
 
-      {/* Floating stop button visible ONLY during Movie Mode */}
-      {isPlaying && (
+      {/* Floating stop button visible ONLY during Movie or Explore Mode */}
+      {(isPlaying || isExploreMode) && (
         <motion.button
           className="fixed right-6 top-6 z-[60] flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-void/60 text-ink-dim backdrop-blur-md transition-colors hover:border-signal/50 hover:text-signal"
-          onClick={() => setIsPlaying(false)}
+          onClick={() => {
+            setIsPlaying(false);
+            setIsExploreMode(false);
+          }}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.8 }}
-          title="Stop Movie Mode (Space)"
+          title={isPlaying ? "Stop Movie Mode (Space)" : "Exit Explore Mode"}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
             <rect x="6" y="4" width="4" height="16" />
