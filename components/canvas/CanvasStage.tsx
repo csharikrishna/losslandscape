@@ -18,9 +18,10 @@ export default function CanvasStage() {
   return (
     <div className="fixed inset-0 z-0" aria-hidden="true">
       <Canvas
-        dpr={[1, 1.75]}
+        dpr={[1, 1.5]}
         gl={{ antialias: true, powerPreference: "high-performance" }}
         camera={{ fov: 50, near: 0.1, far: 400, position: [0, 30, -38] }}
+        performance={{ min: 0.5 }}
       >
         <Scene progress={smoothProgress} motionScale={reducedMotion ? 0 : 1} />
       </Canvas>

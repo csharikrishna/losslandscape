@@ -59,7 +59,7 @@ export default function CameraRig({
       smoothTarget.copy(target);
       isInitialized.value = true;
     } else {
-      smoothTarget.lerp(target, 0.06);
+      smoothTarget.lerp(target, 0.12);
     }
 
     camera.lookAt(smoothTarget);
