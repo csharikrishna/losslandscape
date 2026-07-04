@@ -27,7 +27,7 @@ export default function Scene({
       <Stars radius={140} depth={60} count={1400} factor={2.4} saturation={0} fade speed={0.25} />
 
       <Suspense fallback={null}>
-        <Terrain />
+        <Terrain isExploreMode={isExploreMode} />
         <TrajectoryPath progress={progress} />
       </Suspense>
 

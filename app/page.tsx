@@ -19,6 +19,7 @@ import Overlook from "@/components/sections/Overlook";
 import DeepConcepts from "@/components/sections/DeepConcepts";
 import KeyTakeaways from "@/components/sections/KeyTakeaways";
 import PDFSection from "@/components/sections/PDFSection";
+import GrandFinale from "@/components/sections/GrandFinale";
 import Footer from "@/components/sections/Footer";
 import CanvasErrorBoundary from "@/components/canvas/CanvasErrorBoundary";
 
@@ -64,6 +65,7 @@ function MainContent() {
       <DeepConcepts />
       <KeyTakeaways />
       <PDFSection />
+      <GrandFinale />
     </main>
   );
 }

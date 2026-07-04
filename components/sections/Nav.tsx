@@ -300,7 +300,7 @@ export default function Nav() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-signal">
               <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
             </svg>
-            Flight Controls
+            Matrix Controls
           </div>
           <div className="flex justify-between gap-12 border-b border-white/5 pb-2">
             <span className="text-white/80">W A S D</span>

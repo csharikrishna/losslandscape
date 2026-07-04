@@ -38,7 +38,7 @@ function buildTerrainGeometry() {
   return { geometry, minY, maxY };
 }
 
-export default function Terrain() {
+export default function Terrain({ isExploreMode = false }: { isExploreMode?: boolean }) {
   const { camera } = useThree();
   const materialRef = useRef<THREE.ShaderMaterial>(null);
 
@@ -61,6 +61,7 @@ export default function Terrain() {
       uContourOpacity: { value: 0.32 },
       uContourColor: { value: new THREE.Color("#5FE3C9") },
       uTime: { value: 0 },
+      uMatrixBlend: { value: 0 },
     }),
     [minY, maxY]
   );
@@ -69,6 +70,10 @@ export default function Terrain() {
     if (!materialRef.current) return;
     uniforms.uCameraPosition.value.copy(camera.position);
     uniforms.uTime.value += delta;
+    
+    // Smoothly transition the matrix effect on/off
+    const targetBlend = isExploreMode ? 1.0 : 0.0;
+    uniforms.uMatrixBlend.value += (targetBlend - uniforms.uMatrixBlend.value) * (delta * 2.0);
   });
 
   return (
