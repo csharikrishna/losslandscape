@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useRef, useState, useMemo, type ReactNode } from "react";
 import { useScroll, useSpring, type MotionValue } from "framer-motion";
 
 interface ScrollCtx {
@@ -27,18 +27,12 @@ export function ScrollProvider({ children }: { children: ReactNode }) {
 
   const [isExploreMode, setIsExploreMode] = useState(false);
 
-  const value = useRef<ScrollCtx>({
+  const value = useMemo(() => ({
     progress: scrollYProgress,
     smoothProgress,
-    isExploreMode: false,
-    setIsExploreMode: () => {},
-  }).current;
-
-  // We have to mutate the ref value because it's passed directly to Provider 
-  // but we want motion values to not trigger react re-renders when they change.
-  // However, isExploreMode IS a react state, so we update the ref and the component re-renders.
-  value.isExploreMode = isExploreMode;
-  value.setIsExploreMode = setIsExploreMode;
+    isExploreMode,
+    setIsExploreMode,
+  }), [scrollYProgress, smoothProgress, isExploreMode]);
 
   return <ScrollContext.Provider value={value}>{children}</ScrollContext.Provider>;
 }
