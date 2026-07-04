@@ -287,6 +287,36 @@ export default function Nav() {
         </motion.button>
       )}
 
+      {/* Explore Mode Controls Guide */}
+      {isExploreMode && (
+        <motion.div
+          className="fixed bottom-8 left-8 z-[60] flex flex-col gap-2 rounded-xl border border-white/10 bg-void/60 p-5 text-xs font-mono text-ink-dim backdrop-blur-md shadow-2xl"
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.95 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <div className="mb-2 flex items-center gap-2 font-sans text-[13px] font-medium text-white/90">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-signal">
+              <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+            </svg>
+            Flight Controls
+          </div>
+          <div className="flex justify-between gap-12 border-b border-white/5 pb-2">
+            <span className="text-white/80">W A S D</span>
+            <span className="text-white/40">Move</span>
+          </div>
+          <div className="flex justify-between gap-12 border-b border-white/5 py-2">
+            <span className="text-white/80">R / F</span>
+            <span className="text-white/40">Up / Down</span>
+          </div>
+          <div className="flex justify-between gap-12 pt-2">
+            <span className="text-white/80">Click + Drag</span>
+            <span className="text-white/40">Look Around</span>
+          </div>
+        </motion.div>
+      )}
+
       {/* Countdown ring during reading pauses */}
       {isPlaying && <CountdownRing seconds={pauseRemaining} />}
     </>
