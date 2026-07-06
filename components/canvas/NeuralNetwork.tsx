@@ -229,7 +229,7 @@ export default function NeuralNetwork() {
           anchorY="top"
           textAlign="center"
           lineHeight={1.4}
-          opacity={0.8}
+          fillOpacity={0.8}
         >
           {layer.label}
         </Text>

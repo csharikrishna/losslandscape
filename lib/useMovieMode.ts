@@ -16,7 +16,39 @@ export function useMovieMode() {
   // Expose the remaining pause time so a countdown ring can read it
   const [pauseRemaining, setPauseRemaining] = useState(0);
 
-  const toggle = useCallback(() => setIsPlaying(prev => !prev), []);
+  const setPlayingWrapper = useCallback((play: boolean | ((prev: boolean) => boolean)) => {
+    if (typeof play === 'function') {
+      setIsPlaying((prev) => {
+        const next = play(prev);
+        if (next) {
+          if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          }
+        } else {
+          if (document.fullscreenElement && document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          }
+        }
+        return next;
+      });
+    } else {
+      if (play) {
+        setIsPlaying(true);
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+      } else {
+        setIsPlaying(false);
+        if (document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        }
+      }
+    }
+  }, []);
+
+  const toggle = useCallback(() => {
+    setPlayingWrapper((prev) => !prev);
+  }, [setPlayingWrapper]);
 
   useEffect(() => {
     isPlayingRef.current = isPlaying;
@@ -24,19 +56,8 @@ export function useMovieMode() {
     if (isPlaying) {
       // Reset seen panels so a re-play re-pauses at each section
       seenPanels.current.clear();
-      
-      if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(err => {
-          console.warn(`Error attempting to enable fullscreen: ${err.message}`);
-        });
-      }
       startScroll();
     } else {
-      if (document.fullscreenElement && document.exitFullscreen) {
-        document.exitFullscreen().catch(err => {
-          console.warn(`Error attempting to exit fullscreen: ${err.message}`);
-        });
-      }
       stopScroll();
       setPauseRemaining(0);
     }
@@ -176,5 +197,5 @@ export function useMovieMode() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  return { isPlaying, setIsPlaying, toggle, pauseRemaining };
+  return { isPlaying, setIsPlaying: setPlayingWrapper, toggle, pauseRemaining };
 }
