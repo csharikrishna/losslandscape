@@ -7,7 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postbuild": "node scripts/check-initial-bundle.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",
@@ -15,7 +16,6 @@
     "@react-three/postprocessing": "2.16.2",
     "clsx": "2.1.1",
     "framer-motion": "11.2.12",
-    "gsap": "3.12.5",
     "next": "^14.2.35",
     "postprocessing": "6.35.4",
     "react": "18.3.1",

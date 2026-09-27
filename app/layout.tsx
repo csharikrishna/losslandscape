@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import ClientLayout from "./ClientLayout";
 
 const display = Space_Grotesk({
   subsets: ["latin"],
@@ -18,12 +19,13 @@ const body = IBM_Plex_Sans({
 
 const mono = IBM_Plex_Mono({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-mono",
   display: "swap",
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://loss-landscape.vercel.app"),
   title: "The Loss Landscape — an interactive expedition",
   description:
     "Fly through the optimization landscape of a neural network: basins, saddles, ridges, and the geometry of why some minima generalize and others don't.",
@@ -43,7 +45,14 @@ export const metadata: Metadata = {
     description:
       "An interactive, scroll-driven journey through the geometry of deep learning optimization.",
     type: "website",
-    images: ["/og-image.png"],
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "The Loss Landscape — 3D terrain visualization of deep neural network optimization",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -60,15 +69,17 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-import ClientLayout from "./ClientLayout";
-
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
+    <html
+      lang="en"
+      className={`${display.variable} ${body.variable} ${mono.variable}`}
+      data-quality="medium"
+    >
       <body>
         <ClientLayout>{children}</ClientLayout>
       </body>

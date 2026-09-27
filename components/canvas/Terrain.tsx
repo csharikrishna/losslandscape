@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useRef } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useMemo, useRef, useEffect } from "react";
+import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { heightAt, TERRAIN_BOUNDS } from "@/lib/terrain-data";
+import { heightAt, TERRAIN_BOUNDS } from "@/lib/journey";
 import { terrainVertexShader, terrainFragmentShader } from "@/lib/shaders";
 
 const SEGMENTS_X = 200;
@@ -39,10 +39,15 @@ function buildTerrainGeometry() {
 }
 
 export default function Terrain({ isExploreMode = false }: { isExploreMode?: boolean }) {
-  const { camera } = useThree();
   const materialRef = useRef<THREE.ShaderMaterial>(null);
 
   const { geometry, minY, maxY } = useMemo(() => buildTerrainGeometry(), []);
+
+  useEffect(() => {
+    return () => {
+      geometry.dispose();
+    };
+  }, [geometry]);
 
   const uniforms = useMemo(
     () => ({
@@ -56,7 +61,6 @@ export default function Terrain({ isExploreMode = false }: { isExploreMode?: boo
       uFogColor: { value: new THREE.Color("#070A12") },
       uFogNear: { value: 46 },
       uFogFar: { value: 150 },
-      uCameraPosition: { value: new THREE.Vector3() },
       uContourSpacing: { value: 1.35 },
       uContourOpacity: { value: 0.32 },
       uContourColor: { value: new THREE.Color("#5FE3C9") },
@@ -68,22 +72,22 @@ export default function Terrain({ isExploreMode = false }: { isExploreMode?: boo
 
   useFrame((_, delta) => {
     if (!materialRef.current) return;
-    uniforms.uCameraPosition.value.copy(camera.position);
-    uniforms.uTime.value += delta;
-    
-    // Smoothly transition the matrix effect on/off
+    // Bound uTime to prevent float precision loss during long sessions
+    uniforms.uTime.value = (uniforms.uTime.value + delta) % 10000;
+
+    // Smoothly transition the matrix wireframe on/off in Explore mode
     const targetBlend = isExploreMode ? 1.0 : 0.0;
-    uniforms.uMatrixBlend.value += (targetBlend - uniforms.uMatrixBlend.value) * (delta * 2.0);
+    uniforms.uMatrixBlend.value += (targetBlend - uniforms.uMatrixBlend.value) * (delta * 3.0);
   });
 
   return (
-    <mesh geometry={geometry} receiveShadow>
+    <mesh geometry={geometry}>
       <shaderMaterial
         ref={materialRef}
         vertexShader={terrainVertexShader}
         fragmentShader={terrainFragmentShader}
         uniforms={uniforms}
-        side={THREE.DoubleSide}
+        side={THREE.FrontSide}
       />
     </mesh>
   );

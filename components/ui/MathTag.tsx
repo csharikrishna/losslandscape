@@ -14,7 +14,7 @@ export default function MathTag({
   return (
     <span
       className={clsx(
-        "inline-flex items-center rounded-md border px-2 py-0.5 font-mono text-[13px]",
+        "math-tag-interactive inline-flex items-center rounded-md border px-2 py-0.5 font-mono text-[13px]",
         toneClass
       )}
     >

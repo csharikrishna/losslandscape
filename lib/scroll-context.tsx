@@ -16,9 +16,9 @@ const ScrollContext = createContext<ScrollCtx | null>(null);
 export function ScrollProvider({ children }: { children: ReactNode }) {
   const { scrollYProgress } = useScroll();
   const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 65,
-    damping: 28,
-    mass: 0.5,
+    stiffness: 45,
+    damping: 35,
+    mass: 0.6,
   });
 
   const pathname = usePathname();

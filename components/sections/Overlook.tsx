@@ -14,26 +14,34 @@ const FACTS = [
 export default function Overlook() {
   return (
     <SectionShell id="overlook" align="center" height="medium" className="text-center">
-      <Reveal className="w-full flex justify-center">
+      <Reveal stagger className="w-full flex justify-center">
         <Panel width="wide" className="text-left">
-          <Eyebrow>10 · Look back at the route</Eyebrow>
-          <h2 className="font-display text-3xl font-semibold text-ink sm:text-4xl">
-            The whole range, from up here
-          </h2>
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-dim">
-            Pull back far enough and every feature you just walked through — the sharp spike,
-            the saddle, the plateau, the cliff, the ridge, the ravine, the two minima — resolves
-            into one continuous, absurdly high-dimensional surface. A handful of structural
-            truths about it hold up across almost every architecture anyone has trained:
-          </p>
-          <ul className="mt-6 space-y-3">
-            {FACTS.map((fact) => (
-              <li key={fact} className="flex items-start gap-3 text-sm text-ink-dim">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-signal" />
-                {fact}
-              </li>
-            ))}
-          </ul>
+          <Reveal.Item>
+            <Eyebrow>10 · Look back at the route</Eyebrow>
+          </Reveal.Item>
+          <Reveal.Item>
+            <h2 className="font-display text-3xl font-semibold text-ink sm:text-4xl">
+              The whole range, from up here
+            </h2>
+          </Reveal.Item>
+          <Reveal.Item>
+            <p className="mt-3 max-w-2xl text-base leading-[1.85] text-ink-dim">
+              Pull back far enough and every feature you just walked through — the sharp spike,
+              the saddle, the plateau, the cliff, the ridge, the ravine, the two minima — resolves
+              into one continuous, absurdly high-dimensional surface. A handful of structural
+              truths about it hold up across almost every architecture anyone has trained:
+            </p>
+          </Reveal.Item>
+          <Reveal.Item>
+            <ul className="mt-6 space-y-3">
+              {FACTS.map((fact) => (
+                <li key={fact} className="flex items-start gap-3 text-sm text-ink-dim">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-signal" />
+                  {fact}
+                </li>
+              ))}
+            </ul>
+          </Reveal.Item>
         </Panel>
       </Reveal>
     </SectionShell>

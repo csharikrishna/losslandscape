@@ -1,7 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useMemo } from "react";
+import { motion, useInView } from "framer-motion";
+import { useMemo, useRef } from "react";
+import { usePrefersReducedMotion } from "@/lib/motion";
 
 const W = 300;
 const TOP = 18;
@@ -24,7 +25,7 @@ function elevation(variant: Variant, x: number): number {
   if (variant === "cliff") {
     return 0.78 - 0.6 * smoothstep(-0.14, 0.1, x);
   }
-  // ridge
+  // ridge: sharp bell-shaped wall of high loss
   const bump = Math.exp(-(x * x) / (2 * 0.13 * 0.13));
   return 0.2 + 0.68 * bump;
 }
@@ -58,48 +59,65 @@ const COPY: Record<Variant, { color: string; caption: string }> = {
       "A short run, a violent change in loss. The gradient norm right at the edge can be huge — one ordinary-sized step can hurl the parameters somewhere entirely different. Gradient clipping exists specifically for this.",
   },
   ridge: {
-    color: "#2E6FF2",
+    // Aligned to high-loss elevation token (#F2542D) since a ridge is a barrier of high loss
+    color: "#F2542D",
     caption:
       "A wall of high loss separating two otherwise-reasonable basins. Crossing it requires either a large, well-aimed step, or accepting a temporarily worse loss — many optimizers simply never cross, and settle in whichever basin they started nearest to.",
   },
 };
 
 export default function CrossSectionDiagram({ variant }: { variant: Variant }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(containerRef, { amount: 0.3 });
+  const reducedMotion = usePrefersReducedMotion();
+  const shouldAnimate = isInView && !reducedMotion;
+
   const path = useMemo(() => buildPath(variant), [variant]);
   const { color, caption } = COPY[variant];
 
   return (
-    <div>
+    <div ref={containerRef}>
       <svg viewBox={`0 0 ${W} ${BOTTOM + 14}`} className="w-full overflow-visible">
         <line x1={16} y1={BOTTOM} x2={W - 16} y2={BOTTOM} stroke="#1B2333" strokeWidth={1} />
         <path d={path} fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" />
 
         {variant === "plateau" && (
-          <motion.circle
-            r={5.5}
-            fill={color}
-            cx={toXY(0, variant).px}
-            cy={toXY(0, variant).py}
-            initial={{ opacity: 1 }}
-            animate={{ cx: [toXY(0, variant).px, toXY(0, variant).px + 6, toXY(0, variant).px - 4, toXY(0, variant).px] }}
-            transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
-          />
+          shouldAnimate ? (
+            <motion.circle
+              r={5.5}
+              fill={color}
+              initial={{ cx: toXY(0, variant).px, cy: toXY(0, variant).py, opacity: 1 }}
+              animate={{
+                cx: [
+                  toXY(0, variant).px,
+                  toXY(0, variant).px + 6,
+                  toXY(0, variant).px - 4,
+                  toXY(0, variant).px,
+                ],
+              }}
+              transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+            />
+          ) : (
+            <circle cx={toXY(0, variant).px} cy={toXY(0, variant).py} r={5.5} fill={color} />
+          )
         )}
 
-        {variant === "cliff" && (
-          <CliffBall color={color} />
-        )}
-
-        {variant === "ridge" && <RidgeBall color={color} />}
+        {variant === "cliff" && <CliffBall color={color} shouldAnimate={shouldAnimate} />}
+        {variant === "ridge" && <RidgeBall color={color} shouldAnimate={shouldAnimate} />}
       </svg>
       <p className="mt-3 text-sm leading-relaxed text-ink-dim">{caption}</p>
     </div>
   );
 }
 
-function CliffBall({ color }: { color: string }) {
+function CliffBall({ color, shouldAnimate }: { color: string; shouldAnimate: boolean }) {
   const xs = [-0.85, -0.05, 0.32];
   const points = xs.map((x) => toXY(x, "cliff"));
+
+  if (!shouldAnimate) {
+    return <circle cx={points[0].px} cy={points[0].py} r={5.5} fill={color} />;
+  }
+
   return (
     <motion.circle
       r={5.5}
@@ -110,14 +128,25 @@ function CliffBall({ color }: { color: string }) {
         cy: [points[0].py, points[1].py, points[2].py + 34],
         opacity: [1, 1, 0],
       }}
-      transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 0.6, times: [0, 0.62, 1], ease: "easeIn" }}
+      transition={{
+        duration: 2.2,
+        repeat: Infinity,
+        repeatDelay: 0.6,
+        times: [0, 0.62, 1],
+        ease: "easeIn",
+      }}
     />
   );
 }
 
-function RidgeBall({ color }: { color: string }) {
+function RidgeBall({ color, shouldAnimate }: { color: string; shouldAnimate: boolean }) {
   const xs = [-0.82, -0.2, -0.82];
   const points = xs.map((x) => toXY(x, "ridge"));
+
+  if (!shouldAnimate) {
+    return <circle cx={points[0].px} cy={points[0].py} r={5.5} fill={color} />;
+  }
+
   return (
     <motion.circle
       r={5.5}

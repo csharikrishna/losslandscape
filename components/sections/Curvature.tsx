@@ -7,20 +7,28 @@ import CurvatureDiagram from "@/components/diagrams/CurvatureDiagram";
 export default function Curvature() {
   return (
     <SectionShell id="curvature" align="left">
-      <Reveal>
+      <Reveal stagger>
         <Panel>
-          <Eyebrow>In between · Curvature</Eyebrow>
-          <h2 className="font-display text-3xl font-semibold text-ink sm:text-4xl">
-            Curvature, from every angle
-          </h2>
-          <p className="mt-3 text-base leading-relaxed text-ink-dim">
-            &quot;Sharp&quot; and &quot;flat&quot; aren&apos;t single numbers — curvature depends on which direction you
-            probe. The Hessian&apos;s eigenvalues are exactly that: one curvature measurement per
-            direction, all at once.
-          </p>
-          <div className="mt-7">
-            <CurvatureDiagram />
-          </div>
+          <Reveal.Item>
+            <Eyebrow>In between · Curvature</Eyebrow>
+          </Reveal.Item>
+          <Reveal.Item>
+            <h2 className="font-display text-3xl font-semibold text-ink sm:text-4xl">
+              Curvature, from every angle
+            </h2>
+          </Reveal.Item>
+          <Reveal.Item>
+            <p className="mt-3 text-base leading-[1.85] text-ink-dim">
+              &quot;Sharp&quot; and &quot;flat&quot; aren&apos;t single numbers — curvature depends on which direction you
+              probe. The Hessian&apos;s eigenvalues are exactly that: one curvature measurement per
+              direction, all at once.
+            </p>
+          </Reveal.Item>
+          <Reveal.Item>
+            <div className="mt-7">
+              <CurvatureDiagram />
+            </div>
+          </Reveal.Item>
         </Panel>
       </Reveal>
     </SectionShell>

@@ -4,44 +4,93 @@ import { motion, type Variants } from "framer-motion";
 import type { ReactNode } from "react";
 import { usePrefersReducedMotion } from "@/lib/motion";
 
-const variants: Variants = {
+const containerVariants: Variants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.03,
+    },
+  },
+};
+
+// Clean transform and opacity without expensive backdrop/filter blur animations
+const itemVariants: Variants = {
   hidden: {
     opacity: 0,
-    y: 28,
-    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+    y: 20,
   },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+    transition: {
+      duration: 0.6,
+      ease: [0.22, 1, 0.36, 1],
+    },
   },
 };
 
-export default function Reveal({
+const legacyVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 20,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: [0.22, 1, 0.36, 1],
+    },
+  },
+};
+
+function RevealItem({
   children,
-  delay = 0,
   className,
 }: {
   children: ReactNode;
-  delay?: number;
   className?: string;
 }) {
-  const prefersReducedMotion = usePrefersReducedMotion();
-
   return (
-    <motion.div
-      className={className}
-      initial={prefersReducedMotion ? "visible" : "hidden"}
-      whileInView="visible"
-      viewport={{ once: false, amount: 0.25 }}
-      variants={variants}
-      transition={{ delay }}
-      // When leaving viewport, revert to hidden so panels don't linger
-      {...(!prefersReducedMotion && {
-        exit: "hidden",
-      })}
-    >
+    <motion.div className={className} variants={itemVariants}>
       {children}
     </motion.div>
   );
 }
+
+interface RevealProps {
+  children: ReactNode;
+  delay?: number;
+  className?: string;
+  stagger?: boolean;
+}
+
+const Reveal = Object.assign(
+  function RevealRoot({
+    children,
+    delay = 0,
+    className,
+    stagger = false,
+  }: RevealProps) {
+    const prefersReducedMotion = usePrefersReducedMotion();
+
+    return (
+      <motion.div
+        className={className}
+        initial={prefersReducedMotion ? "visible" : "hidden"}
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.15 }}
+        variants={stagger ? containerVariants : legacyVariants}
+        transition={{ delay }}
+      >
+        {children}
+      </motion.div>
+    );
+  },
+  {
+    Item: RevealItem,
+  }
+);
+
+export default Reveal;

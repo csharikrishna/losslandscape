@@ -28,7 +28,8 @@ const POINTS: [number, number][] = [
 
 function toSvg([x, y]: [number, number]) {
   const px = PAD + x * (W - PAD * 2);
-  const py = PAD + y * (H - PAD * 2);
+  // Loss increases UPWARDS on the vertical axis (standard mathematical coordinate system)
+  const py = H - PAD - y * (H - PAD * 2);
   return { px, py };
 }
 
@@ -44,9 +45,11 @@ const localMinimaIdx = POINTS.map((_, i) => i).filter((i) => {
   if (i === 0 || i === POINTS.length - 1) return false;
   return POINTS[i][1] < POINTS[i - 1][1] && POINTS[i][1] < POINTS[i + 1][1];
 });
-const globalIdx = localMinimaIdx.reduce((best, i) =>
-  POINTS[i][1] < POINTS[best][1] ? i : best
-, localMinimaIdx[0]);
+
+const globalIdx = localMinimaIdx.reduce(
+  (best, i) => (POINTS[i][1] < POINTS[best][1] ? i : best),
+  localMinimaIdx[0]
+);
 
 export default function MinimaPathDiagram() {
   const path = buildPath();
@@ -70,7 +73,12 @@ export default function MinimaPathDiagram() {
           const isGlobal = i === globalIdx;
           return (
             <g key={i}>
-              <circle cx={px} cy={py} r={isGlobal ? 6 : 4} fill={isGlobal ? "#2E6FF2" : "#7B8299"} />
+              <circle
+                cx={px}
+                cy={py}
+                r={isGlobal ? 6 : 4}
+                fill={isGlobal ? "#2E6FF2" : "#7B8299"}
+              />
               {isGlobal && <circle cx={px} cy={py} r={11} fill="#2E6FF2" fillOpacity={0.18} />}
             </g>
           );

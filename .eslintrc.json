@@ -1,3 +1,26 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": "next/core-web-vitals",
+  "overrides": [
+    {
+      "files": [
+        "app/**/*.{ts,tsx}",
+        "components/{sections,ui,diagrams,hud}/**/*.{ts,tsx}",
+        "lib/**/*.{ts,tsx}"
+      ],
+      "excludedFiles": ["lib/trajectory.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["three", "three/*", "@react-three/*", "@/lib/trajectory"],
+                "message": "WebGL code must stay behind dynamic CanvasStage imports (keeps three.js out of the initial bundle)."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

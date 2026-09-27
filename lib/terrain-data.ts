@@ -34,6 +34,8 @@ export interface TerrainFeature {
   amplitude: number;
   /** rotation in radians, used by saddle + ridge orientation */
   rotation?: number;
+  cosRot?: number;
+  sinRot?: number;
   /** axis a cliff's step runs across ("x" or "z") */
   axis?: "x" | "z";
   /** absolute height a plateau flattens toward */
@@ -228,6 +230,13 @@ export const FEATURES: TerrainFeature[] = [
   { id: "local-4", kind: "well", x: 40, z: 118, radius: 5.5, amplitude: -6.5 },
 ];
 
+// Precompute trigonometric rotation values once at module load
+for (const f of FEATURES) {
+  const rot = f.rotation ?? 0;
+  f.cosRot = Math.cos(rot);
+  f.sinRot = Math.sin(rot);
+}
+
 // ---------------------------------------------------------------------------
 // Height field
 // ---------------------------------------------------------------------------
@@ -252,9 +261,10 @@ function wellContribution(f: TerrainFeature, x: number, z: number): number {
 function saddleContribution(f: TerrainFeature, x: number, z: number): number {
   const dx = x - f.x;
   const dz = z - f.z;
-  const rot = f.rotation ?? 0;
-  const u = dx * Math.cos(rot) + dz * Math.sin(rot);
-  const v = -dx * Math.sin(rot) + dz * Math.cos(rot);
+  const cos = f.cosRot ?? Math.cos(f.rotation ?? 0);
+  const sin = f.sinRot ?? Math.sin(f.rotation ?? 0);
+  const u = dx * cos + dz * sin;
+  const v = -dx * sin + dz * cos;
   const envelope = Math.exp(-(dx * dx + dz * dz) / (2 * f.radius * f.radius));
   return (f.amplitude * (u * u - v * v) * envelope) / (f.radius * f.radius);
 }
@@ -271,9 +281,10 @@ function cliffContribution(f: TerrainFeature, x: number, z: number): number {
 function ridgeContribution(f: TerrainFeature, x: number, z: number): number {
   const dx = x - f.x;
   const dz = z - f.z;
-  const rot = f.rotation ?? 0;
-  const along = dx * Math.sin(rot) + dz * Math.cos(rot);
-  const across = dx * Math.cos(rot) - dz * Math.sin(rot);
+  const cos = f.cosRot ?? Math.cos(f.rotation ?? 0);
+  const sin = f.sinRot ?? Math.sin(f.rotation ?? 0);
+  const along = dx * sin + dz * cos;
+  const across = dx * cos - dz * sin;
   const sigmaLong = f.radiusLong ?? f.radius * 3;
   return (
     f.amplitude *

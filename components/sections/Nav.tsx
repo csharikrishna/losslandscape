@@ -1,22 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, useTransform, useMotionValueEvent } from "framer-motion";
-import Link from "next/link";
-import { useJourneyScroll } from "@/lib/scroll-context";
-import { JOURNEY, heightAt } from "@/lib/terrain-data";
-import { stopProgress } from "@/lib/trajectory";
+import { useEffect, useRef } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { JOURNEY, heightAt } from "@/lib/journey";
+import { useActiveStop } from "@/lib/useJourneyScroll";
+import { useMode, setMode, commandResetNNCamera, commandToggleTour } from "@/lib/mode-store";
 import { useMovieMode } from "@/lib/useMovieMode";
-import { useAudioDrone } from "@/lib/useAudioDrone";
+import { useAudio } from "@/lib/audio-context";
 
-const stopHeights = JOURNEY.map(stop => heightAt(stop.x, stop.z));
+const stopHeights = JOURNEY.map((stop) => heightAt(stop.x, stop.z));
 const minH = Math.min(...stopHeights);
 const maxH = Math.max(...stopHeights);
 const hRange = maxH - minH || 1;
 
 const getNormalizedY = (h: number) => {
-  const normalized = (h - minH) / hRange; 
-  return 0.15 + (1 - normalized) * 0.7; 
+  const normalized = (h - minH) / hRange;
+  return 0.15 + (1 - normalized) * 0.7;
 };
 
 const sparklinePoints = stopHeights.map((h, i) => {
@@ -29,119 +28,135 @@ const sparklinePath = `M ${sparklinePoints.join(" L ")}`;
 /** Small SVG countdown ring shown when Movie Mode pauses for reading */
 function CountdownRing({ seconds }: { seconds: number }) {
   if (seconds <= 0) return null;
-  
+
   const radius = 10;
   const circumference = 2 * Math.PI * radius;
-  
+  // Dwell is 5 seconds
+  const strokeDashoffset = circumference * (1 - Math.min(5, Math.max(0, seconds)) / 5);
+
   return (
-    <div className="fixed bottom-8 right-8 z-[60] flex items-center gap-3">
-      <svg width="32" height="32" viewBox="0 0 28 28" className="drop-shadow-lg">
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed bottom-6 right-6 z-[65] flex items-center gap-2.5 rounded-full border border-signal/20 bg-void/90 px-3 py-1.5 backdrop-blur-md shadow-xl"
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24" className="rotate-[-90deg]">
         <circle
-          cx="14" cy="14" r={radius}
+          cx="12"
+          cy="12"
+          r={radius}
           fill="none"
           stroke="rgba(255,255,255,0.1)"
           strokeWidth="2"
         />
         <circle
-          cx="14" cy="14" r={radius}
+          cx="12"
+          cy="12"
+          r={radius}
           fill="none"
           stroke="#8FF7E0"
-          strokeWidth="2"
+          strokeWidth="2.5"
           strokeLinecap="round"
           strokeDasharray={circumference}
-          strokeDashoffset={0}
-          style={{
-            transition: 'stroke-dashoffset 1s linear',
-            transform: 'rotate(-90deg)',
-            transformOrigin: '50% 50%',
-          }}
+          strokeDashoffset={strokeDashoffset}
+          style={{ transition: "stroke-dashoffset 0.8s ease" }}
         />
       </svg>
-      <span className="font-mono text-xs text-signal/80">{seconds}s</span>
+      <span className="font-mono text-xs text-signal font-medium">{seconds}s</span>
     </div>
   );
 }
 
 export default function Nav() {
-  const { smoothProgress, isExploreMode, isNNMode } = useJourneyScroll();
-  const fillWidth = useTransform(smoothProgress, (p) => `${Math.max(0, Math.min(100, p * 100))}%`);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const { isPlaying, setIsPlaying, pauseRemaining } = useMovieMode();
-  const { isAudioOn, setIsAudioOn } = useAudioDrone();
+  const mode = useMode();
+  const activeStop = useActiveStop();
+  const { isPlaying, toggle, dwellSeconds, stop: stopMovie } = useMovieMode();
+  const { toggleMute } = useAudio();
 
-  // Nav backdrop opacity — transparent at top, dark after hero
-  const backdropOpacity = useTransform(smoothProgress, [0, 0.06], [0, 1]);
+  const isExploreMode = mode === "explore";
+  const isNNMode = mode === "architecture";
+  const isModeActive = isExploreMode || isNNMode;
 
-  useMotionValueEvent(smoothProgress, "change", (latest) => {
-    let closestIdx = 0;
-    for (let i = 0; i < JOURNEY.length; i++) {
-      const progress = stopProgress(i);
-      const halfStep = 1 / (JOURNEY.length - 1) / 2;
-      if (latest >= progress - halfStep && latest < progress + halfStep) {
-        closestIdx = i;
-        break;
-      }
-    }
-    if (closestIdx !== activeIndex) {
-      setActiveIndex(closestIdx);
-    }
-  });
+  const { scrollY } = useScroll();
+  const backdropOpacity = useTransform(scrollY, [0, 80], [0, 1]);
 
-  // Keyboard: M to toggle audio
+  // Handle M key for audio mute
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'KeyM' && !e.repeat) {
-        setIsAudioOn(prev => !prev);
+      if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
+      if (e.code === "KeyM" && !e.repeat) {
+        toggleMute();
+      } else if (e.code === "Escape") {
+        if (isModeActive) {
+          setMode("journey");
+        }
+        if (isPlaying) {
+          stopMovie();
+        }
       }
     };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [setIsAudioOn]);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [toggleMute, isModeActive, isPlaying, stopMovie]);
 
-  const handleSparklineClick = (e: React.MouseEvent, stopId: string) => {
+  const handleScrollTo = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
-    const el = document.getElementById(stopId);
+    if (isModeActive) {
+      setMode("journey");
+    }
+    const el = document.getElementById(id);
     if (el) {
-      el.scrollIntoView({ behavior: 'instant' as ScrollBehavior });
+      el.scrollIntoView({ behavior: "smooth" });
     }
   };
 
   return (
     <>
-      {/* Main nav — hidden during movie mode */}
-      <motion.header
-        className="fixed inset-x-0 top-0 z-50"
-        animate={{
-          opacity: isPlaying || isExploreMode || isNNMode ? 0 : 1,
-          y: isPlaying || isExploreMode || isNNMode ? -20 : 0,
+      {/* Semantic accessible navigation bar */}
+      <motion.nav
+        role="navigation"
+        aria-label="Main navigation"
+        className="fixed inset-x-0 top-0 z-50 transition-transform duration-300"
+        style={{
+          pointerEvents: isPlaying ? "none" : "auto",
+          transform: isPlaying ? "translateY(-100%)" : "translateY(0%)",
         }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        style={{ pointerEvents: isPlaying || isExploreMode || isNNMode ? 'none' : 'auto' }}
       >
-        {/* Dark gradient backdrop that fades in after hero */}
+        {/* Subtle backdrop fading in on scroll */}
         <motion.div
-          className="absolute inset-0 -z-10 backdrop-blur-sm"
+          className="absolute inset-0 -z-10 backdrop-blur-md border-b border-white/5"
           style={{
             opacity: backdropOpacity,
-            background: 'linear-gradient(180deg, rgba(5,7,12,0.85) 0%, rgba(5,7,12,0.4) 80%, transparent 100%)',
+            background:
+              "linear-gradient(180deg, rgba(5,7,12,0.88) 0%, rgba(5,7,12,0.65) 100%)",
           }}
         />
 
-        <div className="flex items-center justify-between px-5 py-4 sm:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-8">
+          {/* Brand */}
           <a
             href="#hero"
-            onClick={(e) => handleSparklineClick(e, 'hero')}
-            className="font-display text-sm font-semibold tracking-tight text-ink"
+            onClick={(e) => handleScrollTo(e, "hero")}
+            className="flex items-center gap-2 font-display text-sm font-semibold tracking-tight text-ink hover:text-white transition-colors"
           >
-            Loss<span className="text-signal">Landscape</span>
-            <span className="ml-2 hidden font-mono text-[11px] font-normal text-ink-faint sm:inline">
+            <span>
+              Loss<span className="text-signal">Landscape</span>
+            </span>
+            <span className="hidden font-mono text-[11px] font-normal text-ink-faint sm:inline">
               L(θ)
             </span>
           </a>
 
-          <div className="relative hidden h-12 w-[280px] items-center lg:flex" aria-label="Journey stops">
-            {/* Base faded sparkline */}
-            <svg className="absolute inset-0 h-full w-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+          {/* Interactive sparkline journey track (Desktop) */}
+          <div
+            className="relative hidden h-10 w-[260px] items-center lg:flex"
+            aria-label="Journey stops progress"
+          >
+            <svg
+              className="absolute inset-0 h-full w-full pointer-events-none"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+            >
               <path
                 d={sparklinePath}
                 stroke="rgba(255,255,255,0.15)"
@@ -151,27 +166,9 @@ export default function Nav() {
               />
             </svg>
 
-            {/* Filled active sparkline */}
-            <motion.div 
-              className="absolute inset-y-0 left-0 overflow-hidden pointer-events-none"
-              style={{ width: fillWidth }}
-            >
-              <svg className="absolute left-0 top-0 h-full w-[280px]" viewBox="0 0 100 100" preserveAspectRatio="none">
-                <path
-                  d={sparklinePath}
-                  stroke="#8FF7E0"
-                  strokeWidth="2.5"
-                  fill="none"
-                  vectorEffect="non-scaling-stroke"
-                  className="drop-shadow-[0_0_8px_rgba(143,247,224,0.6)]"
-                />
-              </svg>
-            </motion.div>
-
             {JOURNEY.map((stop, i) => {
-              const isActive = i === activeIndex;
-              const isPast = i <= activeIndex;
-              
+              const isActive = i === activeStop;
+              const isPast = i <= activeStop;
               const xPercent = (i / (JOURNEY.length - 1)) * 100;
               const yPercent = getNormalizedY(stopHeights[i]) * 100;
 
@@ -179,23 +176,30 @@ export default function Nav() {
                 <a
                   key={stop.id}
                   href={`#${stop.id}`}
-                  onClick={(e) => handleSparklineClick(e, stop.id)}
-                  title={stop.title}
-                  className="group absolute flex h-8 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center"
+                  onClick={(e) => handleScrollTo(e, stop.id)}
+                  title={`${stop.title} (Stop ${i + 1} of ${JOURNEY.length})`}
+                  className="group absolute flex h-10 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center focus-visible:outline-none"
                   style={{
                     left: `${xPercent}%`,
-                    top: `${yPercent}%`
+                    top: `${yPercent}%`,
                   }}
                 >
                   <span
-                    className={`h-2 w-2 rounded-full transition-all duration-300 group-hover:scale-[1.75] group-hover:bg-signal group-hover:shadow-[0_0_8px_rgba(143,247,224,0.8)] ${
-                      isActive ? "bg-signal shadow-[0_0_10px_rgba(143,247,224,0.8)] scale-125" : isPast ? "bg-signal/70" : "bg-ink-dim/30 hover:bg-ink-dim/80"
+                    className={`h-2 w-2 rounded-full transition-all duration-300 group-hover:scale-150 ${
+                      isActive
+                        ? "bg-signal shadow-[0_0_10px_rgba(143,247,224,0.9)] scale-125"
+                        : isPast
+                        ? "bg-signal/70"
+                        : "bg-white/20 group-hover:bg-white/60"
                     }`}
-                    aria-hidden="true"
                   />
-                  <span 
-                    className={`pointer-events-none absolute -bottom-3 z-10 translate-y-full whitespace-nowrap rounded-md border border-signal/20 bg-[#0D1220]/90 px-2 py-1 font-mono text-[11px] text-signal opacity-0 shadow-lg backdrop-blur-sm transition-all duration-200 group-hover:-bottom-2 group-hover:opacity-100 ${
-                      i === 0 ? "left-0" : i === JOURNEY.length - 1 ? "right-0" : "left-1/2 -translate-x-1/2"
+                  <span
+                    className={`pointer-events-none absolute -bottom-2 z-10 translate-y-full whitespace-nowrap rounded border border-signal/20 bg-[#0D1220]/95 px-2 py-0.5 font-mono text-[10px] text-signal opacity-0 shadow-lg backdrop-blur-sm transition-all duration-150 group-hover:opacity-100 ${
+                      i === 0
+                        ? "left-0"
+                        : i === JOURNEY.length - 1
+                        ? "right-0"
+                        : "left-1/2 -translate-x-1/2"
                     }`}
                   >
                     {stop.title}
@@ -206,159 +210,167 @@ export default function Nav() {
             })}
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Mode actions & links */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Explore button */}
             <button
-              onClick={() => setIsAudioOn(!isAudioOn)}
-              className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-white/15 bg-white/5 text-ink-dim transition-colors hover:border-signal/50 hover:text-signal"
-              title={isAudioOn ? "Mute (M)" : "Sound (M)"}
+              onClick={() => setMode(isExploreMode ? "journey" : "explore")}
+              className={`rounded-full border px-3.5 py-1.5 font-mono text-xs transition-colors ${
+                isExploreMode
+                  ? "border-signal bg-signal/15 text-signal shadow-[0_0_12px_rgba(143,247,224,0.25)]"
+                  : "border-white/10 bg-white/5 text-ink-dim hover:border-signal/40 hover:text-signal"
+              }`}
             >
-              {isAudioOn ? (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-                </svg>
-              ) : (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
-                </svg>
-              )}
+              {isExploreMode ? "Exit Flight" : "Free Flight"}
             </button>
-            
 
-            
+            {/* Architecture button */}
             <button
-              onClick={() => setIsPlaying(!isPlaying)}
-              className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 font-mono text-xs text-ink-dim transition-colors hover:border-signal/50 hover:text-signal"
-              title="Toggle Movie Mode (Space)"
+              onClick={() => setMode(isNNMode ? "journey" : "architecture")}
+              className={`rounded-full border px-3.5 py-1.5 font-mono text-xs transition-colors ${
+                isNNMode
+                  ? "border-signal bg-signal/15 text-signal shadow-[0_0_12px_rgba(143,247,224,0.25)]"
+                  : "border-white/10 bg-white/5 text-ink-dim hover:border-signal/40 hover:text-signal"
+              }`}
+            >
+              {isNNMode ? "Exit NN" : "3D Network"}
+            </button>
+
+            {/* Movie mode toggle */}
+            <button
+              onClick={toggle}
+              className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-mono text-xs transition-colors ${
+                isPlaying
+                  ? "border-signal bg-signal/15 text-signal shadow-[0_0_12px_rgba(143,247,224,0.25)]"
+                  : "border-white/10 bg-white/5 text-ink-dim hover:border-signal/40 hover:text-signal"
+              }`}
+              title="Toggle cinematic auto-scroll"
             >
               {isPlaying ? (
                 <>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
                     <rect x="6" y="4" width="4" height="16" />
                     <rect x="14" y="4" width="4" height="16" />
                   </svg>
-                  Stop
+                  <span>Pause</span>
                 </>
               ) : (
                 <>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M8 5v14l11-7z" />
                   </svg>
-                  Movie
+                  <span>Tour</span>
                 </>
               )}
             </button>
+
+            {/* PDF write-up link */}
             <a
               href="#read-pdf"
-              onClick={(e) => handleSparklineClick(e, 'read-pdf')}
-              className="hidden rounded-full border border-white/15 bg-white/5 px-4 py-1.5 font-mono text-xs text-ink-dim transition-colors hover:border-signal/50 hover:text-signal sm:inline-block"
+              onClick={(e) => handleScrollTo(e, "read-pdf")}
+              className="hidden sm:inline-block rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-xs text-ink-dim transition-colors hover:border-white/30 hover:text-ink"
             >
               PDF
             </a>
           </div>
         </div>
+      </motion.nav>
 
-      </motion.header>
-
-      {/* Floating stop button visible ONLY during Movie, Explore, or NN Mode */}
-      {(isPlaying || isExploreMode || isNNMode) && (
-        <Link
-          href="/"
-          className="fixed right-6 top-6 z-[60] flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-void/60 text-ink-dim backdrop-blur-md transition-colors hover:border-signal/50 hover:text-signal"
+      {/* Floating Exit Button during active free modes */}
+      {(isModeActive || isPlaying) && (
+        <button
           onClick={() => {
-            setIsPlaying(false);
+            if (isPlaying) stopMovie();
+            if (isModeActive) setMode("journey");
           }}
-          title={isPlaying ? "Stop Movie Mode (Space)" : "Exit"}
+          className="fixed right-6 top-6 z-[65] flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-white/20 bg-void/80 text-ink-dim backdrop-blur-md transition-all hover:scale-105 hover:border-signal hover:text-signal active:scale-95"
+          title="Exit to journey (Esc)"
+          aria-label="Exit to journey"
         >
-          {isPlaying ? (
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-              <rect x="6" y="4" width="4" height="16" />
-              <rect x="14" y="4" width="4" height="16" />
-            </svg>
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          )}
-        </Link>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
       )}
 
-      {/* Explore Mode / NN Mode Controls Guide */}
-      {(isExploreMode || isNNMode) && (
+      {/* Mode Controls HUD — Positioned at bottom-left without overlapping AudioToggle */}
+      {isModeActive && (
         <motion.div
-          className="fixed bottom-8 left-8 z-[60] flex flex-col gap-4 rounded-xl border border-white/10 bg-black/50 p-6 backdrop-blur-md font-mono text-sm shadow-2xl w-[320px]"
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 20, scale: 0.95 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="fixed bottom-20 left-4 sm:bottom-6 sm:left-24 z-[55] flex flex-col gap-3 rounded-xl border border-white/10 bg-void/90 p-4 sm:p-5 backdrop-blur-xl font-mono text-xs shadow-2xl w-[calc(100vw-2rem)] sm:w-[280px]"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 14 }}
+          transition={{ duration: 0.3 }}
         >
-          <div className="flex items-center justify-between mb-2 w-full">
-            <div className="flex items-center gap-2 text-cyan-400 font-bold">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-              </svg>
-              <span>{isNNMode ? "Architecture Controls" : "Matrix Controls"}</span>
-            </div>
+          <div className="flex items-center justify-between border-b border-white/10 pb-2">
+            <span className="font-semibold text-signal uppercase tracking-wider">
+              {isNNMode ? "Architecture View" : "Terrain Flight"}
+            </span>
             {isNNMode && (
-              <button 
-                onClick={() => window.dispatchEvent(new Event("reset-nn-camera"))}
-                className="px-2 py-1 bg-white/10 hover:bg-white/20 rounded text-xs text-white transition-colors whitespace-nowrap flex-shrink-0"
+              <button
+                onClick={commandResetNNCamera}
+                className="rounded bg-white/10 px-2 py-0.5 text-[11px] text-ink-dim hover:bg-white/20 hover:text-ink transition-colors"
                 title="Reset Camera View"
               >
-                Reset View
+                Reset
               </button>
             )}
           </div>
-          
-          {isNNMode ? (
-            <div className="flex justify-between gap-12 border-b border-white/5 pb-2">
-              <span className="text-white/80">Left Click</span>
-              <span className="text-right text-white/40">Rotate</span>
-            </div>
-          ) : (
-            <div className="flex justify-between gap-12 border-b border-white/5 pb-2">
-              <span className="text-white/80">W A S D</span>
-              <span className="text-right text-white/40">Move</span>
-            </div>
-          )}
 
-          {isNNMode ? (
-            <div className="flex justify-between gap-12 border-b border-white/5 pb-2">
-              <span className="text-white/80">W A S D <span className="opacity-30">or</span> R-Click</span>
-              <span className="text-right text-white/40">Pan</span>
-            </div>
-          ) : (
-            <div className="flex justify-between gap-12 border-b border-white/5 pb-2">
-              <span className="text-white/80">R / F</span>
-              <span className="text-right text-white/40">Up / Down</span>
-            </div>
-          )}
-
-          {isNNMode ? (
-            <div className="flex justify-between gap-12 pt-1 pb-3">
-              <span className="text-white/80">Scroll</span>
-              <span className="text-right text-white/40">Zoom</span>
-            </div>
-          ) : (
-            <div className="flex justify-between gap-12 pt-1">
-              <span className="text-white/80">Click + Drag</span>
-              <span className="text-right text-white/40">Look Around</span>
-            </div>
-          )}
-
-          {isNNMode && (
-            <button 
-              onClick={() => window.dispatchEvent(new Event("start-cinematic-tour"))}
-              className="mt-1 w-full py-2 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 hover:from-cyan-500/40 hover:to-purple-500/40 rounded-lg text-xs text-white transition-all uppercase tracking-widest border border-[#00f0ff]/30 font-bold shadow-[0_0_15px_rgba(0,240,255,0.2)]"
-            >
-              Start Cinematic Tour
-            </button>
-          )}
+          <div className="flex flex-col gap-1.5 text-ink-dim">
+            {isNNMode ? (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-ink">Drag</span>
+                  <span className="text-ink-faint">Orbit rotate</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-ink">Right-drag / WASD</span>
+                  <span className="text-ink-faint">Pan</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-ink">Pinch / Scroll</span>
+                  <span className="text-ink-faint">Zoom</span>
+                </div>
+                <button
+                  onClick={commandToggleTour}
+                  className="mt-2 w-full rounded-lg border border-signal/30 bg-signal/10 py-1.5 font-mono text-[11px] font-semibold text-signal transition-colors hover:bg-signal/20 active:scale-95"
+                >
+                  Cinematic Tour
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-ink">Click + Drag</span>
+                  <span className="text-ink-faint">Look around</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-ink">W A S D</span>
+                  <span className="text-ink-faint">Fly forward/back/strafe</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-ink">R / F</span>
+                  <span className="text-ink-faint">Ascend / Descend</span>
+                </div>
+              </>
+            )}
+          </div>
         </motion.div>
       )}
 
-      {/* Countdown ring during reading pauses */}
-      {isPlaying && <CountdownRing seconds={pauseRemaining} />}
+      {/* Countdown ring during reading dwell in Movie mode */}
+      {isPlaying && <CountdownRing seconds={dwellSeconds} />}
     </>
   );
 }

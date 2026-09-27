@@ -14,17 +14,21 @@ const ITEMS = [
 export default function KeyTakeaways() {
   return (
     <SectionShell id="takeaways" align="center" height="short">
-      <Reveal className="w-full flex justify-center">
+      <Reveal stagger className="w-full flex justify-center">
         <Panel width="default">
-          <Eyebrow>Key takeaways</Eyebrow>
-          <ul className="space-y-4">
-            {ITEMS.map((item) => (
-              <li key={item.title} className="flex items-start gap-4">
-                <span className={`mt-0.5 font-display text-lg ${item.tone}`}>{item.glyph}</span>
-                <span className="text-sm leading-relaxed text-ink-dim">{item.title}</span>
-              </li>
-            ))}
-          </ul>
+          <Reveal.Item>
+            <Eyebrow>Key takeaways</Eyebrow>
+          </Reveal.Item>
+          <Reveal.Item>
+            <ul className="space-y-4">
+              {ITEMS.map((item) => (
+                <li key={item.title} className="flex items-start gap-4">
+                  <span className={`mt-0.5 font-display text-lg ${item.tone}`}>{item.glyph}</span>
+                  <span className="text-sm leading-relaxed text-ink-dim">{item.title}</span>
+                </li>
+              ))}
+            </ul>
+          </Reveal.Item>
         </Panel>
       </Reveal>
     </SectionShell>

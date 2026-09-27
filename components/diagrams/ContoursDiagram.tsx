@@ -2,93 +2,99 @@
 
 import { motion } from "framer-motion";
 
-const W = 300;
+const W = 360;
 const H = 190;
 const CX = W / 2;
 const CY = H / 2;
 
-function ContourSet({
-  radii,
-  color,
-  label,
-}: {
-  radii: number[];
-  color: string;
-  label: string;
-}) {
-  return (
-    <div className="flex-1">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full overflow-visible">
-        {radii.map((r, i) => (
-          <motion.ellipse
-            key={r}
-            cx={CX}
-            cy={CY}
-            rx={r}
-            ry={r * 0.72}
-            fill="none"
-            stroke={color}
-            strokeOpacity={0.85 - i * 0.1}
-            strokeWidth={1.4}
-            initial={{ pathLength: 0 }}
-            whileInView={{ pathLength: 1 }}
-            viewport={{ once: true, amount: 0.5 }}
-            transition={{ duration: 0.9, delay: i * 0.12, ease: "easeOut" }}
-          />
-        ))}
-        {/* gradient-direction arrows, pointing outward = direction of increasing loss */}
-        {[0, 72, 144, 216, 288].map((deg) => {
-          const rad = (deg * Math.PI) / 180;
-          const r0 = radii[0] * 0.55;
-          const r1 = radii[0] * 1.05;
-          const x0 = CX + Math.cos(rad) * r0;
-          const y0 = CY + Math.sin(rad) * r0 * 0.72;
-          const x1 = CX + Math.cos(rad) * r1;
-          const y1 = CY + Math.sin(rad) * r1 * 0.72;
-          return (
-            <motion.line
-              key={deg}
-              x1={x0}
-              y1={y0}
-              x2={x1}
-              y2={y1}
-              stroke="#8FF7E0"
-              strokeWidth={1.2}
-              markerEnd="url(#arrowhead)"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 0.75 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.9, duration: 0.5 }}
-            />
-          );
-        })}
-        <circle cx={CX} cy={CY} r={2.5} fill="#EDEFF5" />
-      </svg>
-      <p className="text-center font-mono text-[11px] uppercase tracking-wide text-ink-faint">
-        {label}
-      </p>
-    </div>
-  );
-}
-
 export default function ContoursDiagram() {
+  // Elongated concentric ellipses modeling an ill-conditioned ravine
+  const ellipses = [
+    { rx: 50, ry: 15, opacity: 0.85, color: "#8FF7E0" },
+    { rx: 90, ry: 30, opacity: 0.65, color: "#5FE3C9" },
+    { rx: 130, ry: 48, opacity: 0.45, color: "#2E6FF2" },
+    { rx: 165, ry: 68, opacity: 0.25, color: "#F2542D" },
+  ];
+
+  // Zig-zag path of standard gradient descent across steep ravine walls
+  const zigZagPath = `M ${CX - 145},${CY - 58} 
+    L ${CX - 110},${CY + 45} 
+    L ${CX - 75},${CY - 35} 
+    L ${CX - 40},${CY + 25} 
+    L ${CX - 10},${CY - 18} 
+    L ${CX + 15},${CY + 12} 
+    L ${CX + 35},${CY - 6} 
+    L ${CX + 50},${CY}`;
+
+  // Momentum / Adam path gliding down the corridor
+  const momentumPath = `M ${CX - 145},${CY - 58} 
+    Q ${CX - 90},${CY + 10} ${CX},${CY}`;
+
   return (
     <div>
-      <svg width="0" height="0">
-        <defs>
-          <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="4" refY="3" orient="auto">
-            <path d="M0,0 L6,3 L0,6 Z" fill="#8FF7E0" />
-          </marker>
-        </defs>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full overflow-visible">
+        {/* Ill-conditioned ravine contour lines */}
+        {ellipses.map((e, i) => (
+          <ellipse
+            key={i}
+            cx={CX}
+            cy={CY}
+            rx={e.rx}
+            ry={e.ry}
+            fill="none"
+            stroke={e.color}
+            strokeOpacity={e.opacity}
+            strokeWidth={1.5}
+          />
+        ))}
+
+        {/* Center minimum corridor marker */}
+        <circle cx={CX} cy={CY} r={3} fill="#8FF7E0" />
+
+        {/* Naive SGD zig-zag trajectory */}
+        <motion.path
+          d={zigZagPath}
+          fill="none"
+          stroke="#F2542D"
+          strokeWidth={1.8}
+          strokeDasharray="3 3"
+          initial={{ pathLength: 0 }}
+          whileInView={{ pathLength: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.8, ease: "easeInOut" }}
+        />
+
+        {/* Momentum / Adaptive trajectory */}
+        <motion.path
+          d={momentumPath}
+          fill="none"
+          stroke="#8FF7E0"
+          strokeWidth={2.2}
+          initial={{ pathLength: 0 }}
+          whileInView={{ pathLength: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.4, delay: 0.4, ease: "easeOut" }}
+        />
       </svg>
-      <div className="flex flex-col sm:flex-row gap-8">
-        <ContourSet radii={[14, 24, 34, 44, 54]} color="#F2542D" label="tight spacing · steep" />
-        <ContourSet radii={[10, 32, 54, 76, 98]} color="#2E6FF2" label="wide spacing · gentle" />
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 font-mono text-[11px]">
+        <div className="flex items-center gap-4 text-ink-faint">
+          <span className="flex items-center gap-1.5">
+            <span className="h-0.5 w-4 bg-[#F2542D]" />
+            <span>Naive SGD (zig-zagging across steep walls)</span>
+          </span>
+          <span className="flex items-center gap-1.5 text-signal">
+            <span className="h-0.5 w-4 bg-[#8FF7E0]" />
+            <span>With Momentum (damped corridor progress)</span>
+          </span>
+        </div>
       </div>
-      <p className="mt-4 text-sm leading-relaxed text-ink-dim">
-        Contour spacing is inversely proportional to gradient magnitude: rings packed tightly
-        together mean the loss changes fast over a short distance — steep, sharp terrain.
-        Rings spread far apart mean the loss barely moves — flat, forgiving terrain.
+
+      <p className="mt-3 text-sm leading-relaxed text-ink-dim">
+        In an anisotropic ravine, curvature across the valley is hundreds of times greater than
+        along it. Gradients point almost perpendicular to the corridor floor. Without momentum or
+        adaptive coordinate scaling, gradient descent ricochets between the steep valley walls
+        instead of progressing smoothly down the low-loss corridor.
       </p>
     </div>
   );

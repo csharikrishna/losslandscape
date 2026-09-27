@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { ReactNode } from "react";
 import clsx from "clsx";
 
 type Align = "left" | "right" | "center";
@@ -9,24 +9,27 @@ const alignClasses: Record<Align, string> = {
   center: "md:justify-center",
 };
 
+interface SectionShellProps {
+  id: string;
+  height?: "hero" | "tall" | "medium" | "short";
+  align?: Align;
+  children: ReactNode;
+  className?: string;
+}
+
 export default function SectionShell({
   id,
   height = "tall",
   align = "left",
   children,
   className,
-}: {
-  id: string;
-  height?: "hero" | "tall" | "medium" | "short";
-  align?: Align;
-  children: ReactNode;
-  className?: string;
-}) {
+}: SectionShellProps) {
+  // Use svh units to prevent scroll jitter when mobile browser address bars expand/collapse
   const heightClass = {
-    hero: "min-h-[100vh]",
-    tall: "min-h-[160vh]",
-    medium: "min-h-[135vh]",
-    short: "min-h-[85vh]",
+    hero: "min-h-[100svh]",
+    tall: "min-h-[160svh]",
+    medium: "min-h-[135svh]",
+    short: "min-h-[85svh]",
   }[height];
 
   return (

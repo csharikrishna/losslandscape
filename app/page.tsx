@@ -19,25 +19,45 @@ import PDFSection from "@/components/sections/PDFSection";
 import GrandFinale from "@/components/sections/GrandFinale";
 import Footer from "@/components/sections/Footer";
 
+function Divider() {
+  return <div className="section-divider" />;
+}
+
 export default function Home() {
   return (
     <>
       <Hero />
+      <Divider />
       <Basics />
+      <Divider />
       <SharpMinimum />
+      <Divider />
       <SaddlePoint />
+      <Divider />
       <Plateau />
+      <Divider />
       <Cliff />
+      <Divider />
       <Ridge />
+      <Divider />
       <RavineContours />
+      <Divider />
       <Curvature />
+      <Divider />
       <FlatMinimum />
+      <Divider />
       <GlobalMinimum />
+      <Divider />
       <Sgd />
+      <Divider />
       <Overlook />
+      <Divider />
       <DeepConcepts />
+      <Divider />
       <KeyTakeaways />
+      <Divider />
       <PDFSection />
+      <Divider />
       <GrandFinale />
       <Footer />
     </>

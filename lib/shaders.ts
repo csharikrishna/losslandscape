@@ -39,7 +39,6 @@ export const terrainFragmentShader = /* glsl */ `
   uniform vec3 uFogColor;
   uniform float uFogNear;
   uniform float uFogFar;
-  uniform vec3 uCameraPosition;
   uniform float uContourSpacing;
   uniform float uContourOpacity;
   uniform vec3 uContourColor;
@@ -82,8 +81,8 @@ export const terrainFragmentShader = /* glsl */ `
     float shimmer = 0.92 + 0.08 * sin(uTime * 0.35 + vWorldPosition.x * 0.08 + vWorldPosition.z * 0.05);
     shaded = mix(shaded, uContourColor, lineMask * uContourOpacity * shimmer);
 
-    // --- Fresnel rim light along ridgelines, catching a cool highlight ---
-    vec3 viewDir = normalize(uCameraPosition - vWorldPosition);
+    // --- Fresnel rim light along ridgelines using Three.js built-in cameraPosition ---
+    vec3 viewDir = normalize(cameraPosition - vWorldPosition);
     float fresnel = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 2.4);
     shaded += uContourColor * fresnel * 0.14;
 
@@ -91,32 +90,32 @@ export const terrainFragmentShader = /* glsl */ `
     float fogFactor = smoothstep(uFogNear, uFogFar, vViewDepth);
     vec3 finalColor = mix(shaded, uFogColor, fogFactor);
 
-    // --- The Matrix Reveal ---
-    // A digital glowing wireframe grid that overlays the terrain when explore mode is active
-    float gridSpacing = 2.0;
-    float gridX = abs(fract(vWorldPosition.x / gridSpacing - 0.5) - 0.5) * gridSpacing;
-    float gridZ = abs(fract(vWorldPosition.z / gridSpacing - 0.5) - 0.5) * gridSpacing;
-    float lineThickness = 0.06;
-    
-    // Anti-aliased grid lines based on fwidth to prevent moire patterns in the distance
-    float fwX = fwidth(vWorldPosition.x);
-    float fwZ = fwidth(vWorldPosition.z);
-    
-    float lineX = 1.0 - smoothstep(lineThickness - fwX, lineThickness + fwX, gridX);
-    float lineZ = 1.0 - smoothstep(lineThickness - fwZ, lineThickness + fwZ, gridZ);
-    float isGridLine = max(lineX, lineZ);
-    
-    vec3 matrixBaseColor = vec3(0.01, 0.02, 0.03); // Void black
-    vec3 matrixLineColor = vec3(0.1, 1.0, 0.3); // Neon glowing green
-    
-    // Add a scanning pulse effect
-    float pulse = 0.7 + 0.3 * sin(uTime * 3.0 + vWorldPosition.x * 0.2 + vWorldPosition.z * 0.2);
-    vec3 currentMatrixColor = mix(matrixBaseColor, matrixLineColor, isGridLine * pulse);
-    
-    // Blend the normal terrain into the Matrix wireframe
-    finalColor = mix(finalColor, currentMatrixColor, smoothstep(0.0, 1.0, uMatrixBlend));
+    // --- The Matrix Reveal (Explore Mode) ---
+    // Uniform branch skips expensive grid and fwidth math during the normal journey
+    if (uMatrixBlend > 0.001) {
+      float gridSpacing = 2.0;
+      float gridX = abs(fract(vWorldPosition.x / gridSpacing - 0.5) - 0.5) * gridSpacing;
+      float gridZ = abs(fract(vWorldPosition.z / gridSpacing - 0.5) - 0.5) * gridSpacing;
+      float lineThickness = 0.06;
+      
+      float fwX = fwidth(vWorldPosition.x);
+      float fwZ = fwidth(vWorldPosition.z);
+      
+      float lineX = 1.0 - smoothstep(lineThickness - fwX, lineThickness + fwX, gridX);
+      float lineZ = 1.0 - smoothstep(lineThickness - fwZ, lineThickness + fwZ, gridZ);
+      float isGridLine = max(lineX, lineZ);
+      
+      vec3 matrixBaseColor = vec3(0.01, 0.02, 0.03);
+      vec3 matrixLineColor = vec3(0.56, 0.97, 0.88); // On-palette Signal Mint (#8FF7E0)
+      
+      float pulse = 0.7 + 0.3 * sin(uTime * 3.0 + vWorldPosition.x * 0.2 + vWorldPosition.z * 0.2);
+      vec3 currentMatrixColor = mix(matrixBaseColor, matrixLineColor, isGridLine * pulse);
+      
+      finalColor = mix(finalColor, currentMatrixColor, smoothstep(0.0, 1.0, uMatrixBlend));
+    }
 
     gl_FragColor = vec4(finalColor, 1.0);
+    #include <colorspace_fragment>
   }
 `;
 
@@ -136,16 +135,16 @@ export const trajectoryVertexShader = /* glsl */ `
 
 export const trajectoryFragmentShader = /* glsl */ `
   uniform vec3 uColor;
-  uniform vec3 uCameraPosition;
   uniform float uOpacity;
 
   varying vec3 vNormal;
   varying vec3 vWorldPosition;
 
   void main() {
-    vec3 viewDir = normalize(uCameraPosition - vWorldPosition);
+    vec3 viewDir = normalize(cameraPosition - vWorldPosition);
     float fresnel = pow(1.0 - clamp(dot(normalize(vNormal), viewDir), 0.0, 1.0), 1.6);
     vec3 color = uColor * (0.75 + fresnel * 1.4);
     gl_FragColor = vec4(color, uOpacity);
+    #include <colorspace_fragment>
   }
 `;

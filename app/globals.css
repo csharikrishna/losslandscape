@@ -19,12 +19,6 @@ body {
   @apply bg-void text-ink font-body antialiased;
   overflow-x: hidden;
   min-height: 100vh;
-  animation: fade-in 1.2s ease-out forwards;
-}
-
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 
 ::selection {
@@ -60,7 +54,7 @@ body {
   border-radius: 2px;
 }
 
-/* ---- Film grain overlay: cheap, big cinematic payoff ---- */
+/* ---- Film grain overlay ---- */
 .grain-overlay {
   position: fixed;
   inset: 0;
@@ -85,7 +79,7 @@ body {
   );
 }
 
-/* ---- Glass content panels floating over the terrain canvas ---- */
+/* ---- Glass reading panels ---- */
 .panel-glass {
   background: linear-gradient(
     180deg,
@@ -101,12 +95,22 @@ body {
 
 .panel-glass:hover {
   border-color: rgba(143, 247, 224, 0.25);
-  box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.7), 0 0 40px -10px rgba(143, 247, 224, 0.08);
+  box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.8), 0 0 40px -10px rgba(143, 247, 224, 0.08);
+}
+
+/* Lower tiers and solid panels trade blur for opaque performance */
+:root[data-quality="low"] .panel-glass,
+:root[data-quality="minimal"] .panel-glass,
+.panel-glass.panel-solid {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: rgba(13, 18, 32, 0.92);
 }
 
 /* ---- Small, reusable text treatments ---- */
 .eyebrow {
   @apply font-mono text-[11px] uppercase tracking-widest2 text-signal;
+  text-shadow: 0 0 12px rgba(143, 247, 224, 0.3);
 }
 
 .data-label {
@@ -123,7 +127,7 @@ body {
   );
 }
 
-/* ---- Elevation-ramp coded chips, reused for every loss reference ---- */
+/* ---- Elevation-ramp coded chips ---- */
 .chip-low {
   @apply border border-elevation-low/40 bg-elevation-low/10 text-elevation-low;
 }
@@ -155,4 +159,75 @@ body {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ---- Custom cursor follower (non-intrusive) ---- */
+.custom-cursor-glass {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid rgba(143, 247, 224, 0.35);
+  pointer-events: none;
+  z-index: 9998;
+  will-change: transform;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, width 0.2s ease, height 0.2s ease;
+}
+
+.custom-cursor-glass.is-hovering {
+  border-color: rgba(143, 247, 224, 0.7);
+  box-shadow: 0 0 12px rgba(143, 247, 224, 0.2);
+  width: 44px;
+  height: 44px;
+}
+
+/* ---- Typography refinements ---- */
+section h2 {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* ---- Hairline section dividers ---- */
+.section-divider {
+  height: 1px;
+  width: 100%;
+  position: relative;
+  z-index: 10;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(143, 247, 224, 0.08) 30%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(143, 247, 224, 0.08) 70%,
+    transparent 100%
+  );
+  margin: 0;
+}
+
+/* ---- MathTag micro-interaction ---- */
+.math-tag-interactive {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.2s ease;
+}
+
+.math-tag-interactive:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 12px rgba(143, 247, 224, 0.15);
+}
+
+/* ---- Loading skeleton for 3D ---- */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+.canvas-loading {
+  background: radial-gradient(
+    ellipse at 50% 60%,
+    rgba(34, 184, 176, 0.08) 0%,
+    rgba(5, 7, 12, 0) 70%
+  );
+  animation: pulse-glow 2.5s ease-in-out infinite;
 }

@@ -51,24 +51,30 @@ export default function DeepConcepts() {
   return (
     <SectionShell id="concepts" align="center" height="tall" className="items-start pt-24">
       <div className="mx-auto w-full max-w-5xl">
-        <Reveal>
+        <Reveal stagger>
           <div className="mb-10 text-center">
-            <Eyebrow>Beyond the terrain</Eyebrow>
-            <h2 className="font-display text-3xl font-semibold text-ink sm:text-4xl">
-              Seven ideas that don&apos;t fit on a mountain
-            </h2>
-            <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-ink-dim">
-              A physical landscape is a useful metaphor, not a perfect one. These ideas are
-              genuinely high-dimensional phenomena — here&apos;s the honest version, past the
-              metaphor.
-            </p>
+            <Reveal.Item>
+              <Eyebrow>Beyond the terrain</Eyebrow>
+            </Reveal.Item>
+            <Reveal.Item>
+              <h2 className="font-display text-3xl font-semibold text-ink sm:text-4xl">
+                Seven ideas that don&apos;t fit on a mountain
+              </h2>
+            </Reveal.Item>
+            <Reveal.Item>
+              <p className="mx-auto mt-3 max-w-2xl text-base leading-[1.85] text-ink-dim">
+                A physical landscape is a useful metaphor, not a perfect one. These ideas are
+                genuinely high-dimensional phenomena — here&apos;s the honest version, past the
+                metaphor.
+              </p>
+            </Reveal.Item>
           </div>
         </Reveal>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {CONCEPTS.map((c, i) => (
             <Reveal key={c.title} delay={i * 0.05}>
-              <div className="panel-glass h-full rounded-2xl p-6">
+              <div className="panel-glass panel-solid h-full rounded-2xl p-6">
                 <ConceptIcon variant={c.variant} />
                 <h3 className="mt-4 font-display text-base font-semibold text-ink">{c.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-ink-faint">{c.body}</p>
